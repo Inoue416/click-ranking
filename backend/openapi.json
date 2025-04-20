@@ -1,0 +1,411 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Click Ranking Game API",
+    "description": "Click Ranking GameのAPIドキュメント",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/rooms": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "ルーム作成成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "_def": {
+                    "unknownKeys": "strip",
+                    "catchall": {
+                      "_def": {
+                        "typeName": "ZodNever"
+                      },
+                      "~standard": {
+                        "version": 1,
+                        "vendor": "zod"
+                      }
+                    },
+                    "typeName": "ZodObject"
+                  },
+                  "~standard": {
+                    "version": 1,
+                    "vendor": "zod"
+                  },
+                  "_cached": null
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiRooms",
+        "tags": [
+          "Room"
+        ],
+        "parameters": [],
+        "summary": "ルーム作成",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "maxUsers": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  }
+                },
+                "required": [
+                  "name",
+                  "maxUsers",
+                  "password"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}/join": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "ルーム参加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "_def": {
+                    "unknownKeys": "strip",
+                    "catchall": {
+                      "_def": {
+                        "typeName": "ZodNever"
+                      },
+                      "~standard": {
+                        "version": 1,
+                        "vendor": "zod"
+                      }
+                    },
+                    "typeName": "ZodObject"
+                  },
+                  "~standard": {
+                    "version": 1,
+                    "vendor": "zod"
+                  },
+                  "_cached": null
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiRoomsByRoomIdJoin",
+        "tags": [
+          "Room"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "userName",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "password",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "roomId",
+            "required": true
+          }
+        ],
+        "summary": "ルーム参加",
+        "requestQuery": {
+          "_def": {
+            "unknownKeys": "strip",
+            "catchall": {
+              "_def": {
+                "typeName": "ZodNever"
+              },
+              "~standard": {
+                "version": 1,
+                "vendor": "zod"
+              }
+            },
+            "typeName": "ZodObject"
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          },
+          "_cached": null
+        }
+      }
+    },
+    "/api/rooms/{roomId}/start": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "ゲーム開始成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "_def": {
+                    "unknownKeys": "strip",
+                    "catchall": {
+                      "_def": {
+                        "typeName": "ZodNever"
+                      },
+                      "~standard": {
+                        "version": 1,
+                        "vendor": "zod"
+                      }
+                    },
+                    "typeName": "ZodObject"
+                  },
+                  "~standard": {
+                    "version": 1,
+                    "vendor": "zod"
+                  },
+                  "_cached": null
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiRoomsByRoomIdStart",
+        "tags": [
+          "Room"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "roomId",
+            "required": true
+          }
+        ],
+        "summary": "ゲーム開始",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "userId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}/users/{userId}": {
+      "delete": {
+        "responses": {
+          "200": {
+            "description": "ルーム退出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "_def": {
+                    "unknownKeys": "strip",
+                    "catchall": {
+                      "_def": {
+                        "typeName": "ZodNever"
+                      },
+                      "~standard": {
+                        "version": 1,
+                        "vendor": "zod"
+                      }
+                    },
+                    "typeName": "ZodObject"
+                  },
+                  "~standard": {
+                    "version": 1,
+                    "vendor": "zod"
+                  },
+                  "_cached": null
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteApiRoomsByRoomIdUsersByUserId",
+        "tags": [
+          "Room"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "roomId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "summary": "ルーム退出"
+      }
+    },
+    "/api/rooms/{roomId}/click": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "クリック数更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "_def": {
+                    "unknownKeys": "strip",
+                    "catchall": {
+                      "_def": {
+                        "typeName": "ZodNever"
+                      },
+                      "~standard": {
+                        "version": 1,
+                        "vendor": "zod"
+                      }
+                    },
+                    "typeName": "ZodObject"
+                  },
+                  "~standard": {
+                    "version": 1,
+                    "vendor": "zod"
+                  },
+                  "_cached": null
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiRoomsByRoomIdClick",
+        "tags": [
+          "Game"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "roomId",
+            "required": true
+          }
+        ],
+        "summary": "クリック数更新",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "clickCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "userId",
+                  "clickCount"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}/ws": {
+      "get": {
+        "responses": {
+          "101": {
+            "description": "Switching Protocols"
+          },
+          "400": {
+            "description": "User ID is required"
+          }
+        },
+        "operationId": "getApiRoomsByRoomIdWs",
+        "tags": [
+          "Room"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "roomId",
+            "required": true
+          }
+        ],
+        "summary": "WebSocket接続",
+        "requestQuery": {
+          "_def": {
+            "unknownKeys": "strip",
+            "catchall": {
+              "_def": {
+                "typeName": "ZodNever"
+              },
+              "~standard": {
+                "version": 1,
+                "vendor": "zod"
+              }
+            },
+            "typeName": "ZodObject"
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          },
+          "_cached": null
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

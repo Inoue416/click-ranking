@@ -6,13 +6,17 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "openapi:export": "curl http://localhost:8787/openapi | jq . > openapi.json"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",
     "hono": "^4.7.7",
+    "hono-openapi": "^0.4.6",
+    "swagger-ui-dist": "^5.21.0",
     "uuid": "^11.1.0",
-    "zod": "^3.22.4"
+    "zod": "^3.24.3",
+    "zod-openapi": "^4.2.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250419.0",
