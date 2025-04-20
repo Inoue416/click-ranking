@@ -9,45 +9,46 @@ type StarType = {
   created: number;
 };
 
-export default function Game() {
+export default function Game({ seconds = 10 }: { seconds?: number }) {
   const [count, setCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(10);
-  const [gameState, setGameState] = useState("start"); // "start", "playing", "end"
+  const [timeLeft, setTimeLeft] = useState(seconds);
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'end'>('countdown');
+  const [countdownValue, setCountdownValue] = useState(3);
   const [stars, setStars] = useState<StarType[]>([]);
-  const [countdownValue, setCountdownValue] = useState<number | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const starCount = useRef(0);
 
-  // ゲーム開始時のカウントダウン
+  // 3秒カウントダウン
   useEffect(() => {
-    if (gameState === "playing" && timeLeft === 10) {
+    if (gameState === 'countdown') {
+      setCountdownValue(3);
       let countdown = 3;
-      setCountdownValue(countdown);
-      
-      const countdownInterval = setInterval(() => {
+      const interval = setInterval(() => {
         countdown -= 1;
         setCountdownValue(countdown);
-        
         if (countdown === 0) {
-          clearInterval(countdownInterval);
+          clearInterval(interval);
           setTimeout(() => {
-            setCountdownValue(null);
+            setGameState('playing');
           }, 1000);
         }
       }, 1000);
-      
-      return () => clearInterval(countdownInterval);
+      return () => clearInterval(interval);
     }
-  }, [gameState, timeLeft]);
+  }, [gameState]);
 
   // ゲームタイマー
   useEffect(() => {
-    if (gameState === "playing" && countdownValue === null) {
+    if (gameState === 'playing') {
+      if (timeLeft <= 0) {
+        setGameState('end');
+        return;
+      }
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            setGameState("end");
+            setGameState('end');
             return 0;
           }
           return prev - 1;
@@ -55,7 +56,7 @@ export default function Game() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [gameState, countdownValue]);
+  }, [gameState, timeLeft]);
 
   // 星アニメーションのクリーンアップ
   useEffect(() => {
@@ -64,29 +65,22 @@ export default function Game() {
         prevStars.filter(star => Date.now() - star.created < 1000)
       );
     }, 200);
-    
     return () => clearInterval(cleanup);
   }, []);
 
   const handleClick = () => {
-    if (gameState === "playing" && countdownValue === null) {
-      // クリックカウンターを更新
+    if (gameState === 'playing') {
       setCount(prev => prev + 1);
-      
-      // 星のアニメーション作成
       if (buttonRef.current) {
         const buttonRect = buttonRef.current.getBoundingClientRect();
         const centerX = buttonRect.left + buttonRect.width / 2;
         const centerY = buttonRect.top;
-        
-        // 複数の星を作成
         const newStars: StarType[] = [];
         for (let i = 0; i < 5; i++) {
           const size = Math.random() * 1 + 0.5;
           const angle = Math.random() * Math.PI * 2;
           const speed = Math.random() * 50 + 50;
           const startX = centerX + (Math.random() * 40 - 20);
-          
           newStars.push({
             id: `star-${starCount.current++}`,
             style: {
@@ -99,94 +93,45 @@ export default function Game() {
             created: Date.now(),
           });
         }
-        
         setStars(prevStars => [...prevStars, ...newStars]);
       }
     }
   };
 
-  const startGame = () => {
-    setCount(0);
-    setTimeLeft(10);
-    setGameState("playing");
-    setStars([]);
-  };
-
-  const restartGame = () => {
-    setGameState("start");
-  };
-
   return (
-    <div className="relative flex flex-col items-center justify-between min-h-screen py-8 px-4">
+    <div className="relative flex flex-col items-center justify-between min-h-screen py-8 px-4 bg-gradient-to-br from-orange-200 to-yellow-100">
       {/* 星のアニメーション */}
       {stars.map(star => (
         <Star key={star.id} style={star.style} />
       ))}
-      
-      {/* ゲーム開始画面 */}
+
+      {/* カウントダウン画面 */}
       <AnimatePresence>
-        {gameState === "start" && (
+        {gameState === 'countdown' && (
           <motion.div 
-            className="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-20"
+            className="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-20 bg-black bg-opacity-80"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.h1 
-              className="text-4xl md:text-5xl font-bold text-center mb-8 text-white"
-              initial={{ y: -50 }}
-              animate={{ y: 0, transition: { type: "spring", bounce: 0.5 } }}
+            <motion.div
+              key={countdownValue}
+              className="text-7xl font-bold text-white"
+              initial={{ scale: 1.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ duration: 0.9 }}
             >
-              タップチャレンジ
-            </motion.h1>
-            
-            <motion.p 
-              className="text-xl text-center mb-12 text-gray-300"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { delay: 0.3 } }}
-            >
-              10秒間でどれだけタップできるか挑戦しよう！
-            </motion.p>
-            
-            <motion.button 
-              onClick={startGame} 
-              className="px-8 py-4 text-xl bg-gradient-to-br from-[#ff7b00] to-[#ffb700] text-white rounded-full font-bold shadow-lg"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ y: 50 }}
-              animate={{ y: 0, transition: { type: "spring", bounce: 0.5, delay: 0.5 } }}
-            >
-              スタート！
-            </motion.button>
+              {countdownValue === 0 ? "GO!" : countdownValue}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* ゲームプレイ画面 */}
       <AnimatePresence>
-        {gameState === "playing" && (
+        {gameState === 'playing' && (
           <>
-            {/* カウントダウン表示 */}
-            {countdownValue !== null && (
-              <motion.div 
-                key="countdown"
-                className="absolute inset-0 flex items-center justify-center z-30 bg-black bg-opacity-70"
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  key={countdownValue}
-                  className="text-7xl font-bold text-white"
-                  initial={{ scale: 1.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  transition={{ duration: 0.9 }}
-                >
-                  {countdownValue === 0 ? "GO!" : countdownValue}
-                </motion.div>
-              </motion.div>
-            )}
-            
             {/* スコア表示 */}
             <motion.div 
               className="flex-1 w-full flex flex-col items-center justify-start pt-10"
@@ -196,27 +141,20 @@ export default function Game() {
             >
               <motion.div 
                 className="text-6xl md:text-7xl font-bold text-white"
-                animate={{ 
-                  scale: [1, 1.05, 1],
-                  transition: { duration: 0.15 }
-                }}
+                animate={{ scale: [1, 1.05, 1], transition: { duration: 0.15 } }}
                 key={count}
               >
                 {count}
               </motion.div>
-              
               {/* タイマー表示 */}
               <motion.div 
-                className="absolute top-4 right-4 text-xl font-semibold px-3 py-1 bg-white bg-opacity-10 rounded-full"
-                animate={{
-                  backgroundColor: timeLeft <= 3 ? ["rgba(255,255,255,0.1)", "rgba(255,77,109,0.3)", "rgba(255,255,255,0.1)"] : "rgba(255,255,255,0.1)",
-                  transition: { duration: 0.5, repeat: timeLeft <= 3 ? Infinity : 0 }
-                }}
+                className={`absolute top-4 right-4 text-2xl font-bold px-5 py-2 bg-white bg-opacity-90 text-orange-500 rounded-full border-2 border-orange-300 shadow-lg ${timeLeft <= 5 ? 'animate-pulse' : ''}`}
+                animate={timeLeft <= 5 ? { scale: [1, 1.2, 1], color: ["#f97316", "#dc2626", "#f97316"] } : {}}
+                transition={timeLeft <= 5 ? { repeat: Infinity, duration: 0.7 } : {}}
               >
-                {timeLeft}s
+                残り {timeLeft}s
               </motion.div>
             </motion.div>
-            
             {/* クリックボタン */}
             <motion.div 
               className="w-full flex justify-center items-center mb-4"
@@ -228,9 +166,9 @@ export default function Game() {
               <motion.button
                 ref={buttonRef}
                 onClick={handleClick}
-                className="click-btn w-40 h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-[#ff4d6d] to-[#ff7b00] text-white font-bold text-2xl shadow-lg flex items-center justify-center"
+                className="click-btn w-40 h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-orange-400 to-yellow-400 text-white font-bold text-2xl shadow-lg flex items-center justify-center"
                 whileTap={{ scale: 0.95 }}
-                disabled={countdownValue !== null}
+                disabled={gameState !== 'playing'}
               >
                 TAP!
               </motion.button>
@@ -238,62 +176,62 @@ export default function Game() {
           </>
         )}
       </AnimatePresence>
-      
+
       {/* ゲーム終了画面 */}
       <AnimatePresence>
-        {gameState === "end" && (
+        {gameState === 'end' && (
           <motion.div 
-            className="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-20 bg-black bg-opacity-80"
+            className="flex flex-col items-center justify-center h-full w-full absolute inset-0 z-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.h1 
-              className="text-4xl font-bold text-center mb-2 text-white"
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1, transition: { delay: 0.2 } }}
-            >
-              タイムアップ！
-            </motion.h1>
-            
-            <motion.div 
-              className="text-7xl md:text-8xl font-bold mb-8 text-[#ffb700]"
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1, transition: { delay: 0.5, type: "spring", bounce: 0.5 } }}
-            >
-              {count}
-            </motion.div>
-            
-            <motion.p 
-              className="text-xl text-center mb-2 text-gray-300"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { delay: 0.8 } }}
-            >
-              あなたのスコア
-            </motion.p>
-            
-            <div className="flex gap-4 mt-8">
-              <motion.button 
-                onClick={startGame} 
-                className="px-6 py-3 text-lg bg-gradient-to-r from-[#ffb700] to-[#ff7b00] text-white rounded-full font-bold shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1, transition: { delay: 1.1 } }}
+            <div className="w-80 bg-white bg-opacity-90 p-8 rounded-xl shadow flex flex-col items-center">
+              <motion.h1 
+                className="text-3xl font-bold text-center mb-2 text-gray-800 drop-shadow"
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1, transition: { delay: 0.2 } }}
               >
-                もう一度
-              </motion.button>
-              
-              <motion.button 
-                onClick={restartGame} 
-                className="px-6 py-3 text-lg bg-white bg-opacity-20 text-black rounded-full font-bold shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1, transition: { delay: 1.1 } }}
+                タイムアップ！
+              </motion.h1>
+              <motion.div 
+                className="text-6xl md:text-7xl font-bold mb-6 text-yellow-500"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1, transition: { delay: 0.5, type: "spring", bounce: 0.5 } }}
               >
-                メニューへ
-              </motion.button>
+                {count}
+              </motion.div>
+              <motion.p 
+                className="text-lg text-center mb-4 text-gray-700"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 0.8 } }}
+              >
+                あなたのスコア
+              </motion.p>
+              {/* ランキング表示（仮データ） */}
+              <div className="w-full mt-2">
+                <div className="text-gray-700 font-semibold mb-2 text-center">ランキング</div>
+                <ul className="mb-2">
+                  {[
+                    { name: "あなた", score: count, rank: 2, isMe: true },
+                    { name: "ユーザーA", score: 25, rank: 1 },
+                    { name: "ユーザーB", score: 18, rank: 3 },
+                  ].sort((a, b) => a.rank - b.rank).map((user, i) => (
+                    <li
+                      key={user.rank}
+                      className={`flex justify-between items-center py-1 px-2 rounded mb-1 ${user.isMe ? 'bg-yellow-100 font-bold text-orange-500' : 'bg-gray-100 text-gray-800'}`}
+                    >
+                      <span>{user.rank}位</span>
+                      <span>{user.name}</span>
+                      <span>{user.score}回</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-center text-gray-600 text-sm mt-2">あなたの順位: <span className="font-bold text-orange-500">2位</span></div>
+              </div>
+              <a href="/" className="mt-6 w-full">
+                <button className="w-full py-3 bg-orange-400 hover:bg-orange-500 text-white rounded font-bold text-lg shadow transition">トップに戻る</button>
+              </a>
             </div>
           </motion.div>
         )}
