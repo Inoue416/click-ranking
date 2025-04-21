@@ -127,11 +127,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    name: string;
-                    maxUsers: number;
-                    password: string;
-                };
+                "application/json": unknown;
             };
         };
         responses: {
@@ -148,10 +144,7 @@ export interface operations {
     };
     postApiRoomsByRoomIdJoin: {
         parameters: {
-            query: {
-                userName?: string;
-                password: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 roomId: string;
@@ -182,10 +175,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    userId: string;
-                };
+                "application/json": unknown;
             };
         };
         responses: {
@@ -234,11 +224,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    userId: string;
-                    clickCount: number;
-                };
+                "application/json": unknown;
             };
         };
         responses: {

@@ -10,6 +10,7 @@
     "openapi:export": "curl http://localhost:8787/openapi | jq . > openapi.json"
   },
   "dependencies": {
+    "@hono/zod-openapi": "^0.19.5",
     "@hono/zod-validator": "^0.4.3",
     "hono": "^4.7.7",
     "hono-openapi": "^0.4.6",

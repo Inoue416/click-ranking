@@ -4,6 +4,9 @@ import { User } from '../models/user';
 export class RoomService {
   constructor(private env: Env) {}
 
+  // 仮: メモリ上のルームリスト
+  static rooms: Room[] = [];
+
   async createRoom(data: RoomCreateRequest, creator: User): Promise<Room> {
     const id = crypto.randomUUID();
     const stub = this.env.ROOM_DO.get(this.env.ROOM_DO.idFromName(id));
@@ -82,5 +85,10 @@ export class RoomService {
 
   getWebSocketURL(roomId: string, userId: string, origin: string): string {
     return `wss://${origin}/api/rooms/${roomId}/ws?userId=${userId}`;
+  }
+
+  async getRooms(): Promise<Room[]> {
+    // 本来はDurable ObjectやDBから取得する
+    return RoomService.rooms;
   }
 } 

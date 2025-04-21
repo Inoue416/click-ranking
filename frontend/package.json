@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-api": "npx openapi-typescript ../backend/openapi.json --output src/lib/api/openapi.ts"
   },
   "dependencies": {
     "framer-motion": "^12.7.4",

@@ -105,4 +105,16 @@ export class RoomController {
       return c.json({ success: false, error: (error as Error).message }, 500);
     }
   }
+
+  async getRooms(c: Context): Promise<Response> {
+    try {
+      const rooms = await this.roomService.getRooms();
+      // パスワードなどは除外して返す
+      const safeRooms = rooms.map(({ password, ...rest }) => rest);
+      return c.json(safeRooms);
+    } catch (error) {
+      console.error('Error getting rooms:', error);
+      return c.json({ success: false, error: (error as Error).message }, 500);
+    }
+  }
 } 

@@ -12,7 +12,7 @@ import {
   clickUpdateSchema
 } from '../utils/validator';
 import { describeRoute } from 'hono-openapi';
-import { validator as zValidator } from 'hono-openapi/zod';
+import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 
 type Bindings = {

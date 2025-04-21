@@ -47,29 +47,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 50
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
                   },
-                  "maxUsers": {
-                    "type": "integer",
-                    "minimum": 2,
-                    "maximum": 10
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 32
-                  }
+                  "typeName": "ZodObject"
                 },
-                "required": [
-                  "name",
-                  "maxUsers",
-                  "password"
-                ]
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
               }
             }
           }
@@ -112,26 +107,6 @@
           "Room"
         ],
         "parameters": [
-          {
-            "in": "query",
-            "name": "userName",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 20
-            },
-            "required": false
-          },
-          {
-            "in": "query",
-            "name": "password",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 32
-            },
-            "required": true
-          },
           {
             "schema": {
               "type": "string"
@@ -214,16 +189,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "userId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
+                  },
+                  "typeName": "ZodObject"
                 },
-                "required": [
-                  "userId"
-                ]
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
               }
             }
           }
@@ -336,21 +319,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "userId": {
-                    "type": "string",
-                    "format": "uuid"
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
                   },
-                  "clickCount": {
-                    "type": "integer",
-                    "minimum": 0
-                  }
+                  "typeName": "ZodObject"
                 },
-                "required": [
-                  "userId",
-                  "clickCount"
-                ]
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
               }
             }
           }
