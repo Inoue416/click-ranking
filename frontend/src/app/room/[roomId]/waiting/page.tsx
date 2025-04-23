@@ -1,20 +1,23 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-
-// 仮データ
-const mockUsers = [
-  { id: "1", name: "ユーザーA" },
-  { id: "2", name: "ユーザーB" },
-];
-const isOwner = true; // 仮: ルーム作成者かどうか
+import { useState, useEffect, useTransition } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { RoomSocket } from "@/lib/ws/roomSocket";
+import { fetchRooms } from "@/lib/api/roomClient";
 
 export default function WaitingRoom() {
   const params = useParams();
-  const [users, setUsers] = useState(mockUsers);
-  const [starting, setStarting] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [users, setUsers] = useState<any[]>([]);
+  const [starting, startTransition] = useTransition();
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dots, setDots] = useState("");
+  const [room, setRoom] = useState<any>(null);
+  const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [roomSocket, setRoomSocket] = useState<RoomSocket | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -23,13 +26,64 @@ export default function WaitingRoom() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleStart = () => {
-    setStarting(true);
-    setTimeout(() => {
-      alert("ゲーム開始！（本来は遷移）");
-      // router.push(`/room/${params.roomId}/game`)
-    }, 1000);
+  // 初回のみfetchRoomsでroom情報取得
+  useEffect(() => {
+    fetchRooms().then((rooms) => {
+      const r = rooms.find((r) => r.id === params.roomId);
+      setRoom(r);
+      setUsers(r?.users || []);
+    });
+    // クエリパラメータからuserId, userNameを取得
+    setUserId(searchParams.get("userId") || "");
+    setUserName(searchParams.get("userName") || "");
+  }, []); // 初回のみ
+
+  // WebSocket接続: startイベントでゲーム画面へ遷移
+  useEffect(() => {
+    if (!userId) return;
+    const roomId = params.roomId as string;
+    const socket = new RoomSocket(roomId, userId, userName, {
+      onStart: () => {
+        router.push(`/room/${roomId}/game`);
+      },
+      onRoomInfo: (room) => {
+        console.log('[WebSocket] room_info 受信:', room);
+        if (room && Array.isArray(room.users)) {
+          console.log('[WebSocket] users配列(room_info):', JSON.stringify(room.users));
+          setUsers(room.users);
+        }
+        setRoom(room);
+      },
+      onRoomUpdated: (room) => {
+        console.log('[WebSocket] room_updated 受信:', room);
+        if (room && Array.isArray(room.users)) {
+          console.log('[WebSocket] users配列(room_updated):', JSON.stringify(room.users));
+          setUsers(room.users);
+        }
+        setRoom(room);
+      },
+    });
+    socket.connect();
+    setRoomSocket(socket);
+    return () => {
+      socket.disconnect();
+    };
+  }, [userId, userName, params.roomId, router]);
+
+  const handleStart = async () => {
+    setError(null);
+    setIsStarting(true);
+    if (roomSocket) {
+      try {
+        roomSocket.send(JSON.stringify({ type: 'start_game' }));
+      } catch (e: any) {
+        setError(e.message || "ゲーム開始に失敗しました");
+        setIsStarting(false);
+      }
+    }
   };
+
+  console.log("[WaitingRoom] userId:", userId);
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-orange-200 to-yellow-100 relative">
@@ -46,14 +100,18 @@ export default function WaitingRoom() {
             ))}
           </ul>
         </div>
-        {isOwner ? (
-          <button
-            onClick={handleStart}
-            className="w-full py-3 bg-orange-400 hover:bg-orange-500 text-white rounded font-bold mt-2"
-            disabled={starting}
-          >
-            {starting ? "開始中..." : "ゲーム開始"}
-          </button>
+        {/* ゲーム開始ボタン表示制御 */}
+        {room && userId && room.creatorId === userId ? (
+          <>
+            {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+            <button
+              onClick={handleStart}
+              className="w-full py-3 bg-orange-400 hover:bg-orange-500 text-white rounded font-bold mt-2"
+              disabled={isStarting || starting}
+            >
+              {isStarting || starting ? "開始中..." : "ゲーム開始"}
+            </button>
+          </>
         ) : (
           <div className="w-full text-center text-gray-600 font-semibold mt-2">開始を待っています...</div>
         )}

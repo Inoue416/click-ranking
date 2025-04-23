@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Star from './Star';
+import { sendClickCount } from "@/lib/api/roomClient";
 
 type StarType = {
   id: string;
@@ -67,6 +68,17 @@ export default function Game({ seconds = 10 }: { seconds?: number }) {
     }, 200);
     return () => clearInterval(cleanup);
   }, []);
+
+  // ゲーム終了時にスコア送信
+  useEffect(() => {
+    if (gameState === 'end') {
+      // 仮: roomId, userIdは固定値。今後状態管理やpropsで受け取る形に拡張
+      const roomId = "room1";
+      const userId = "1";
+      sendClickCount({ roomId, userId, clickCount: count })
+        .catch(() => {/* エラー時は無視 or エラー表示も可 */});
+    }
+  }, [gameState]);
 
   const handleClick = () => {
     if (gameState === 'playing') {

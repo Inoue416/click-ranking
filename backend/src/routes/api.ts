@@ -197,6 +197,15 @@ export function apiRoutes(app: Hono<{ Bindings: Bindings }>): Hono<{ Bindings: B
     }),
     (c) => roomController.handleWebSocket(c)
   );
+  // ルーム一覧取得API
+  api.get(
+    '/rooms',
+    async (c) => {
+      const roomService = new RoomService(c.env);
+      const roomController = new RoomController(roomService);
+      return roomController.getRooms(c);
+    }
+  );
 
   return api;
 }

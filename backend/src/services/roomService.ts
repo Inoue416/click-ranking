@@ -18,7 +18,8 @@ export class RoomService {
         id,
         name: data.name,
         maxUsers: data.maxUsers,
-        creator
+        creator,
+        password: data.password
       })
     });
 
@@ -27,6 +28,7 @@ export class RoomService {
     }
 
     const result = await response.json() as { room: Room };
+    RoomService.rooms.push(result.room);
     return result.room;
   }
 
@@ -50,18 +52,23 @@ export class RoomService {
   }
 
   async startGame(roomId: string, userId: string): Promise<boolean> {
+    // ルームをメモリから取得
+    const room = RoomService.rooms.find(r => r.id === roomId);
+    if (!room) {
+      throw new Error('Room not found');
+    }
+    if (room.creatorId !== userId) {
+      throw new Error('Only the creator can start the game');
+    }
     const stub = this.env.ROOM_DO.get(this.env.ROOM_DO.idFromName(roomId));
-    
     const url = 'http://dummy/start';
     const response = await stub.fetch(url, {
       method: 'POST',
       body: JSON.stringify({ userId })
     });
-
     if (!response.ok) {
       throw new Error(`Failed to start game: ${await response.text()}`);
     }
-
     const result = await response.json() as { success: boolean };
     return result.success;
   }

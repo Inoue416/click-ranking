@@ -1,7 +1,6 @@
 import { Room } from '../models/room';
 import { User } from '../models/user';
 import { UserScore, GameResult } from '../models/game';
-// import { DurableObjectState, WebSocket, WebSocketPair, MessageEvent } from '@cloudflare/workers-types';
 
 export class RoomDO {
   private state: DurableObjectState;
@@ -9,7 +8,7 @@ export class RoomDO {
   private gameTimeout: number | null = null;
   private resultTimeout: number | null = null;
   private userScores: Map<string, UserScore> = new Map();
-  private webSockets: Map<string, WebSocket> = new Map();
+  private webSockets: Map<string, Set<WebSocket>> = new Map();
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -26,7 +25,57 @@ export class RoomDO {
     const path = url.pathname.slice(1);
 
     if (request.headers.get('Upgrade') === 'websocket') {
-      return this.handleWebSocket(request);
+      const urlObj = new URL(request.url);
+      const userId = urlObj.searchParams.get('userId');
+      const userName = urlObj.searchParams.get('userName');
+      if (!userId || !userName) {
+        return new Response('userId and userName are required', { status: 400 });
+      }
+      if (!this.room) {
+        return new Response('Room not found', { status: 404 });
+      }
+      const pair = new WebSocketPair();
+      const [client, server] = [pair[0], pair[1]];
+      server.accept();
+      if (!this.webSockets.has(userId)) {
+        this.webSockets.set(userId, new Set());
+      }
+      this.webSockets.get(userId)!.add(server);
+      server.addEventListener('message', (event: MessageEvent) => {
+        try {
+          if (typeof event.data === 'string') {
+            const message = JSON.parse(event.data);
+            switch (message.type) {
+              case 'click':
+                this.updateClickCount(message.userId, message.clickCount);
+                break;
+              // 必要に応じて他のメッセージタイプも追加
+            }
+          }
+        } catch (e) {
+          console.error('WebSocket message parse error:', e);
+        }
+      });
+      server.addEventListener('close', () => {
+        const set = this.webSockets.get(userId);
+        if (set) {
+          set.delete(server);
+          if (set.size === 0) {
+            this.webSockets.delete(userId);
+          }
+        }
+      });
+      setTimeout(() => {
+        try {
+          server.send(JSON.stringify({
+            type: 'room_info',
+            room: this.room
+          }));
+        } catch (e) {
+          console.warn('WebSocket send error after accept:', e);
+        }
+      }, 0);
+      return new Response(null, { status: 101, webSocket: server });
     }
 
     switch (path) {
@@ -45,58 +94,6 @@ export class RoomDO {
       default:
         return new Response('Not found', { status: 404 });
     }
-  }
-
-  private async handleWebSocket(request: Request): Promise<Response> {
-    if (!this.room) {
-      return new Response('Room not found', { status: 404 });
-    }
-
-    const [client, server] = Object.values(new WebSocketPair());
-    const userId = new URL(request.url).searchParams.get('userId');
-
-    if (!userId) {
-      return new Response('User ID required', { status: 400 });
-    }
-
-    this.webSockets.set(userId, server);
-
-    server.accept();
-
-    // websocketが切断されたときの処理
-    server.addEventListener('close', () => {
-      this.webSockets.delete(userId);
-      this.handleUserDisconnect(userId);
-    });
-
-    // メッセージ処理
-    server.addEventListener('message', async (event: MessageEvent) => {
-      try {
-        if (typeof event.data === 'string') {
-          const message = JSON.parse(event.data);
-          switch (message.type) {
-            case 'click':
-              await this.updateClickCount(message.userId, message.clickCount);
-              break;
-          }
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    });
-
-    // ルームの情報を送信
-    server.send(JSON.stringify({
-      type: 'room_info',
-      room: this.room
-    }));
-
-    // WebSocketを返す
-    return new Response(null, {
-      status: 101,
-      webSocket: server,
-      headers: { 'Upgrade': 'websocket' },
-    });
   }
 
   private async handleCreateRoom(request: Request): Promise<Response> {
@@ -147,14 +144,11 @@ export class RoomDO {
       return new Response('Room is full', { status: 400 });
     }
 
+    // users配列に追加
     this.room.users.push(user);
     await this.state.storage.put('room', this.room);
-
     // 全ユーザーにルーム情報を更新通知
-    this.broadcastToAll({
-      type: 'room_updated',
-      room: this.room
-    });
+    this.broadcastToAll({ type: 'room_updated', room: this.room });
 
     // ルームが満員になったら通知
     if (this.room.users.length === this.room.maxUsers) {
@@ -222,7 +216,11 @@ export class RoomDO {
     const data = await request.json() as { userId: string };
     const { userId } = data;
 
-    this.removeUserFromRoom(userId);
+    // users配列から削除
+    this.room.users = this.room.users.filter(u => u.id !== userId);
+    await this.state.storage.put('room', this.room);
+    // 全ユーザーにルーム情報を更新通知
+    this.broadcastToAll({ type: 'room_updated', room: this.room });
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -339,48 +337,22 @@ export class RoomDO {
     });
   }
 
-  private removeUserFromRoom(userId: string): void {
-    if (!this.room) return;
-
-    // WebSocketの接続を閉じる
-    const ws = this.webSockets.get(userId);
-    if (ws) {
-      ws.close();
-      this.webSockets.delete(userId);
-    }
-
-    // ユーザーをルームから削除
-    this.room.users = this.room.users.filter(u => u.id !== userId);
-
-    // ルームからユーザーが全員いなくなったら削除
-    if (this.room.users.length === 0) {
-      this.room = null;
-      this.state.storage.delete('room');
-      return;
-    }
-
-    // 作成者が退出した場合、新しい作成者を設定
-    if (this.room.creatorId === userId && this.room.users.length > 0) {
-      this.room.creatorId = this.room.users[0].id;
-    }
-
-    this.state.storage.put('room', this.room);
-
-    // 残りのユーザーにルーム情報を更新通知
-    this.broadcastToAll({
-      type: 'room_updated',
-      room: this.room
-    });
-  }
-
   private handleUserDisconnect(userId: string): void {
-    this.removeUserFromRoom(userId);
+    // removeUserFromRoomは不要になったため削除
   }
 
   private broadcastToAll(message: any): void {
     const messageStr = JSON.stringify(message);
-    for (const ws of this.webSockets.values()) {
-      ws.send(messageStr);
+    console.log('[RoomDO] broadcastToAll: webSockets keys:', Array.from(this.webSockets.keys()));
+    for (const [userId, set] of this.webSockets.entries()) {
+      console.log(`[RoomDO] userId=${userId} connections=${set.size}`);
+      for (const ws of set) {
+        try {
+          ws.send(messageStr);
+        } catch (e) {
+          console.warn('[RoomDO] ws.send error:', e);
+        }
+      }
     }
   }
 } 

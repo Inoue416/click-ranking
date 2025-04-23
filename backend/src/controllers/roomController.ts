@@ -65,13 +65,10 @@ export class RoomController {
     try {
       const roomId = c.req.param('roomId');
       const { userId } = await c.req.json();
-      
       const success = await this.roomService.startGame(roomId, userId);
-      
       return c.json({ success });
     } catch (error) {
-      console.error('Error starting game:', error);
-      return c.json({ success: false, error: (error as Error).message }, 500);
+      return c.json({ success: false, error: (error as Error).message }, 403);
     }
   }
 
